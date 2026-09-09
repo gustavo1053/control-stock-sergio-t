@@ -439,6 +439,46 @@
     .fx-flames, .fx-snow{ animation:none; opacity:0; }
     .flame-particle, .snowflake{ animation:none; }
   }
+
+  /* ---------- Chat asistente ---------- */
+  #chatToggle{
+    position:fixed; right:22px; bottom:22px; z-index:60;
+    width:58px; height:58px; border-radius:50%; border:none; cursor:pointer;
+    background:linear-gradient(160deg, var(--ice), var(--btn-grad-end));
+    color:#fff; display:flex; align-items:center; justify-content:center;
+    box-shadow:0 6px 18px rgba(var(--ice-rgb),0.4);
+  }
+  #chatToggle svg{ width:26px; height:26px; }
+  #chatPanel{
+    position:fixed; right:22px; bottom:92px; z-index:60;
+    width:360px; max-width:calc(100vw - 32px);
+    height:480px; max-height:calc(100vh - 140px);
+    background:var(--panel); border:1px solid var(--line); border-radius:var(--radius);
+    box-shadow:0 12px 32px rgba(40,30,10,0.25);
+    display:none; flex-direction:column; overflow:hidden;
+  }
+  #chatPanel.open{ display:flex; }
+  .chat-header{
+    padding:14px 16px; background:linear-gradient(180deg, #fffaf0, #f6efdf);
+    border-bottom:1px solid var(--line); display:flex; align-items:center; justify-content:space-between;
+  }
+  .chat-header strong{ font-family:var(--font-display); font-size:15px; color:var(--text); }
+  .chat-header button{ background:none; border:none; cursor:pointer; color:var(--text-dim); }
+  .chat-messages{ flex:1; overflow-y:auto; padding:14px; display:flex; flex-direction:column; gap:10px; }
+  .chat-msg{ max-width:85%; padding:9px 12px; border-radius:12px; font-size:13px; line-height:1.45; white-space:pre-wrap; }
+  .chat-msg.user{ align-self:flex-end; background:var(--ice); color:#fff; border-bottom-right-radius:3px; }
+  .chat-msg.bot{ align-self:flex-start; background:var(--panel-2); color:var(--text); border-bottom-left-radius:3px; }
+  .chat-msg.bot.error{ background:var(--warn-bg); color:var(--warn); }
+  .chat-msg.bot.pending{ color:var(--text-dim); font-style:italic; }
+  .chat-input-row{ display:flex; gap:8px; padding:12px; border-top:1px solid var(--line); }
+  .chat-input-row input{
+    flex:1; padding:9px 12px; border-radius:8px; border:1px solid var(--line);
+    background:var(--panel-2); color:var(--text); font-size:13px; font-family:var(--font-body);
+  }
+  .chat-input-row button{
+    border:none; border-radius:8px; padding:0 14px; background:var(--ice); color:#fff; cursor:pointer; font-weight:600;
+  }
+  .chat-input-row button:disabled{ opacity:0.5; cursor:default; }
 </style>
 </head>
 <body>
@@ -1081,6 +1121,99 @@
 
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && overlayMasiva.classList.contains("open")) overlayMasiva.classList.remove("open");
+  });
+</script>
+
+<!-- Asistente de stock (chat) -->
+<button id="chatToggle" title="Asistente de stock" aria-label="Abrir asistente de stock">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+  </svg>
+</button>
+
+<div id="chatPanel">
+  <div class="chat-header">
+    <strong>Asistente de stock</strong>
+    <button id="chatClose" aria-label="Cerrar asistente">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <div class="chat-messages" id="chatMessages">
+    <div class="chat-msg bot">Hola, soy el asistente de stock. Preguntame por productos, pedime un resumen, o decime "cargá 3 salidas del INV3000-MIDEA".</div>
+  </div>
+  <div class="chat-input-row">
+    <input type="text" id="chatInput" placeholder="Escribí tu pedido…" autocomplete="off">
+    <button id="chatSend">Enviar</button>
+  </div>
+</div>
+
+<script>
+  // URL de la Cloud Function "asistenteStock" (Firebase Functions v2 / Cloud Run).
+  const ASISTENTE_URL = "https://us-central1-sergio-t-refrigeracion.cloudfunctions.net/asistenteStock";
+
+  const chatToggle   = document.getElementById("chatToggle");
+  const chatPanel    = document.getElementById("chatPanel");
+  const chatClose    = document.getElementById("chatClose");
+  const chatMessages = document.getElementById("chatMessages");
+  const chatInput    = document.getElementById("chatInput");
+  const chatSend     = document.getElementById("chatSend");
+
+  let historialChat = [];
+
+  chatToggle.addEventListener("click", () => {
+    chatPanel.classList.toggle("open");
+    if (chatPanel.classList.contains("open")) chatInput.focus();
+  });
+  chatClose.addEventListener("click", () => chatPanel.classList.remove("open"));
+
+  function agregarMensaje(texto, clase){
+    const div = document.createElement("div");
+    div.className = "chat-msg " + clase;
+    div.textContent = texto;
+    chatMessages.appendChild(div);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+    return div;
+  }
+
+  async function enviarMensaje(){
+    const texto = chatInput.value.trim();
+    if (!texto) return;
+
+    agregarMensaje(texto, "user");
+    chatInput.value = "";
+    chatInput.disabled = true;
+    chatSend.disabled = true;
+    const pending = agregarMensaje("Pensando…", "bot pending");
+
+    try{
+      const res = await fetch(ASISTENTE_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mensaje: texto, historial: historialChat })
+      });
+      const data = await res.json();
+      pending.remove();
+
+      if (!res.ok || data.error){
+        agregarMensaje(data.error || "Hubo un problema con el asistente.", "bot error");
+      } else {
+        agregarMensaje(data.respuesta, "bot");
+        historialChat = data.historial || historialChat;
+      }
+    } catch(err){
+      console.error(err);
+      pending.remove();
+      agregarMensaje("No se pudo conectar con el asistente. Revisá tu conexión.", "bot error");
+    } finally {
+      chatInput.disabled = false;
+      chatSend.disabled = false;
+      chatInput.focus();
+    }
+  }
+
+  chatSend.addEventListener("click", enviarMensaje);
+  chatInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") enviarMensaje();
   });
 </script>
 
