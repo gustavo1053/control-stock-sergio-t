@@ -275,7 +275,7 @@
     overflow:hidden;
   }
   .table-scroll{ overflow-x:auto; }
-  table{ width:100%; border-collapse:collapse; min-width:1080px; }
+  table{ width:100%; border-collapse:collapse; min-width:860px; }
   thead th{
     text-align:left; font-size:12.5px; text-transform:none; letter-spacing:0.01em;
     color:var(--text); font-weight:700; padding:10px 12px;
@@ -604,10 +604,7 @@
             <th>Tipo</th>
             <th>Tecnología</th>
             <th class="num">BTU</th>
-            <th class="num">Entradas</th>
-            <th class="num">Salidas</th>
             <th class="num">Stock</th>
-            <th class="num">Mínimo</th>
             <th class="num">Precio Unit.</th>
             <th class="num">Valor Total</th>
             <th>Estado</th>
@@ -839,10 +836,7 @@
           <td data-label="Tipo">${escapeHtml(p.tipo || "")}</td>
           <td data-label="Tecnología"><span class="badge ${tecClass}"><span class="badge-dot"></span>${tecnologia}</span></td>
           <td class="num" data-label="BTU">${fmtNum(p.btu || 0)}</td>
-          <td class="num" data-label="Entradas">${fmtNum(p.entradas || 0)}</td>
-          <td class="num" data-label="Salidas">${fmtNum(p.salidas || 0)}</td>
           <td class="num" data-label="Stock">${fmtNum(stock)}</td>
-          <td class="num" data-label="Mínimo">${fmtNum(p.minimo || 0)}</td>
           <td class="num" data-label="Precio Unit.">${fmtMoney(p.precio || 0)}</td>
           <td class="num" data-label="Valor Total">${fmtMoney(valor)}</td>
           <td data-label="Estado"><span class="badge ${badgeClass}"><span class="badge-dot"></span>${estado}</span></td>
