@@ -890,10 +890,10 @@
       </button>
     </div>
     <div class="modal-body">
-      <p style="font-size:12.5px; color:var(--text-dim); margin:0 0 12px; line-height:1.6;">
-        Compartí el resumen del turno con el cliente o el técnico.
+      <p style="font-size:12px; text-transform:uppercase; letter-spacing:0.08em; font-weight:700; color:var(--text-dim); margin:0 0 8px;">
+        Resumen interno
       </p>
-      <textarea id="ticketText" rows="11" readonly style="width:100%; background:var(--panel-2); border:1px solid var(--line); color:var(--text); border-radius:8px; padding:12px; font-family:var(--font-mono); font-size:12.5px; resize:vertical;"></textarea>
+      <textarea id="ticketText" rows="9" readonly style="width:100%; background:var(--panel-2); border:1px solid var(--line); color:var(--text); border-radius:8px; padding:12px; font-family:var(--font-mono); font-size:12.5px; resize:vertical;"></textarea>
       <div style="display:flex; gap:10px; margin-top:14px; flex-wrap:wrap;">
         <a class="btn btn-primary" id="btnTicketWhatsapp" target="_blank" rel="noopener" style="text-decoration:none; background:linear-gradient(135deg,#25D366,#128C7E); box-shadow:none; color:#fff;">
           📱 WhatsApp
@@ -902,6 +902,22 @@
           ✈️ Telegram
         </a>
         <button class="btn btn-ghost" id="btnTicketCopiar" type="button">Copiar texto</button>
+      </div>
+
+      <hr style="border:none; border-top:1px solid var(--line); margin:22px 0;">
+
+      <p style="font-size:12px; text-transform:uppercase; letter-spacing:0.08em; font-weight:700; color:var(--text-dim); margin:0 0 8px;">
+        Confirmación para el cliente
+      </p>
+      <textarea id="clienteText" rows="9" readonly style="width:100%; background:var(--panel-2); border:1px solid var(--line); color:var(--text); border-radius:8px; padding:12px; font-family:var(--font-mono); font-size:12.5px; resize:vertical;"></textarea>
+      <div style="display:flex; gap:10px; margin-top:14px; flex-wrap:wrap;">
+        <a class="btn btn-primary" id="btnClienteWhatsapp" target="_blank" rel="noopener" style="text-decoration:none; background:linear-gradient(135deg,#25D366,#128C7E); box-shadow:none; color:#fff;">
+          📱 WhatsApp
+        </a>
+        <a class="btn btn-primary" id="btnClienteTelegram" target="_blank" rel="noopener" style="text-decoration:none; background:linear-gradient(135deg,#34AADF,#2694CC); box-shadow:none; color:#fff;">
+          ✈️ Telegram
+        </a>
+        <button class="btn btn-ghost" id="btnClienteCopiar" type="button">Copiar texto</button>
       </div>
     </div>
     <div class="modal-footer">
@@ -1425,6 +1441,10 @@
   const btnTicketWhatsapp = document.getElementById("btnTicketWhatsapp");
   const btnTicketTelegram = document.getElementById("btnTicketTelegram");
   const btnTicketCopiar   = document.getElementById("btnTicketCopiar");
+  const clienteText        = document.getElementById("clienteText");
+  const btnClienteWhatsapp = document.getElementById("btnClienteWhatsapp");
+  const btnClienteTelegram = document.getElementById("btnClienteTelegram");
+  const btnClienteCopiar   = document.getElementById("btnClienteCopiar");
 
   function fmtFechaLarga(fechaISO){
     if (!fechaISO) return "-";
@@ -1448,12 +1468,48 @@
     return lineas.join("\n");
   }
 
+  function buildClienteMensaje(t){
+    const lineas = [
+      `¡Hola${t.cliente ? " " + t.cliente : ""}! 👋`,
+      "",
+      "Te confirmamos tu turno de instalación con Sergio T Refrigeración ❄️🔧",
+      ""
+    ];
+    lineas.push(`📅 Fecha: ${fmtFechaLarga(t.fecha)}${t.hora ? " - " + t.hora + " hs" : ""}`);
+    if (t.direccion) lineas.push(`📍 Dirección: ${t.direccion}`);
+    if (t.equipo)  lineas.push(`🔧 Equipo: ${t.equipo}`);
+    if (t.tecnico) lineas.push(`👷 Técnico asignado: ${t.tecnico}`);
+    lineas.push("", "Ante cualquier consulta o si necesitás reprogramar, escribinos por acá. ¡Gracias por confiar en nosotros!");
+    return lineas.join("\n");
+  }
+
+  function setShareLinks(waBtn, tgBtn, texto){
+    const encoded = encodeURIComponent(texto);
+    waBtn.href = `https://api.whatsapp.com/send?text=${encoded}`;
+    tgBtn.href = `https://t.me/share/url?url=&text=${encoded}`;
+  }
+
+  async function copiarAlPortapapeles(textarea, boton){
+    try{
+      await navigator.clipboard.writeText(textarea.value);
+    }catch(err){
+      textarea.select();
+      document.execCommand("copy");
+    }
+    const original = boton.textContent;
+    boton.textContent = "¡Copiado!";
+    setTimeout(() => { boton.textContent = original; }, 1500);
+  }
+
   function showTicket(t){
     const texto = buildTicketText(t);
     ticketText.value = texto;
-    const encoded = encodeURIComponent(texto);
-    btnTicketWhatsapp.href = `https://api.whatsapp.com/send?text=${encoded}`;
-    btnTicketTelegram.href = `https://t.me/share/url?url=&text=${encoded}`;
+    setShareLinks(btnTicketWhatsapp, btnTicketTelegram, texto);
+
+    const mensajeCliente = buildClienteMensaje(t);
+    clienteText.value = mensajeCliente;
+    setShareLinks(btnClienteWhatsapp, btnClienteTelegram, mensajeCliente);
+
     overlayTicket.classList.add("open");
   }
 
@@ -1463,17 +1519,8 @@
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && overlayTicket.classList.contains("open")) overlayTicket.classList.remove("open");
   });
-  btnTicketCopiar.addEventListener("click", async () => {
-    try{
-      await navigator.clipboard.writeText(ticketText.value);
-    }catch(err){
-      ticketText.select();
-      document.execCommand("copy");
-    }
-    const original = btnTicketCopiar.textContent;
-    btnTicketCopiar.textContent = "¡Copiado!";
-    setTimeout(() => { btnTicketCopiar.textContent = original; }, 1500);
-  });
+  btnTicketCopiar.addEventListener("click", () => copiarAlPortapapeles(ticketText, btnTicketCopiar));
+  btnClienteCopiar.addEventListener("click", () => copiarAlPortapapeles(clienteText, btnClienteCopiar));
 
   window.deleteTurno = function(id){
     const t = turnos.find(x => x.id === id);
