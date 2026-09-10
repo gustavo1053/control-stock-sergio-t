@@ -23,18 +23,13 @@ const TOOLS = [
   {
     name: "consultar_stock",
     description:
-      "Busca productos en el stock. Sin filtros devuelve un resumen de todos los productos (hasta 30). Usalo para responder preguntas sobre qué hay, cuánto stock queda, o qué falta reponer.",
+      "Busca productos en el stock. Sin filtros devuelve un resumen de todos los productos (hasta 30). Usalo para responder preguntas sobre qué hay o cuánto stock queda.",
     input_schema: {
       type: "object",
       properties: {
         texto: {
           type: "string",
           description: "Texto libre para buscar por código, marca o modelo (coincidencia parcial)."
-        },
-        estado: {
-          type: "string",
-          enum: ["OK", "REPONER"],
-          description: "Filtrar solo productos en este estado."
         },
         tecnologia: {
           type: "string",
@@ -47,7 +42,7 @@ const TOOLS = [
   {
     name: "resumen_stock",
     description:
-      "Devuelve totales generales del stock: unidades totales, valor total en pesos y cantidad de productos a reponer.",
+      "Devuelve totales generales del stock: unidades totales y valor total en pesos.",
     input_schema: { type: "object", properties: {} }
   },
   {
@@ -76,7 +71,7 @@ const TOOLS = [
         tipo: { type: "string", description: "Ej: Split, Portátil, Cassette." },
         tecnologia: { type: "string", enum: ["Inverter", "On Off"] },
         btu: { type: "number" },
-        minimo: { type: "number", description: "Stock mínimo antes de marcar 'a reponer'." },
+        minimo: { type: "number", description: "Stock mínimo sugerido." },
         precio: { type: "number", description: "Precio unitario." },
         entradas: { type: "number" },
         salidas: { type: "number" }
@@ -90,7 +85,6 @@ function enrich(p) {
   const entradas = Number(p.entradas) || 0;
   const salidas = Number(p.salidas) || 0;
   const stock = entradas - salidas;
-  const minimo = Number(p.minimo) || 0;
   const precio = Number(p.precio) || 0;
   const tecnologia =
     p.tecnologia ||
@@ -98,7 +92,6 @@ function enrich(p) {
   return {
     ...p,
     stock,
-    estado: stock <= minimo ? "REPONER" : "OK",
     valor: stock * precio,
     tecnologia
   };
@@ -119,7 +112,6 @@ async function ejecutarHerramienta(name, input) {
             (p.modelo || "").toLowerCase().includes(t)
         );
       }
-      if (input.estado) productos = productos.filter((p) => p.estado === input.estado);
       if (input.tecnologia) productos = productos.filter((p) => p.tecnologia === input.tecnologia);
 
       return {
@@ -130,8 +122,6 @@ async function ejecutarHerramienta(name, input) {
           modelo: p.modelo,
           tecnologia: p.tecnologia,
           stock: p.stock,
-          minimo: p.minimo,
-          estado: p.estado,
           precio: p.precio
         }))
       };
@@ -140,13 +130,10 @@ async function ejecutarHerramienta(name, input) {
     case "resumen_stock": {
       const snapshot = await db.collection(COLLECTION).get();
       const productos = snapshot.docs.map((d) => enrich({ id: d.id, ...d.data() }));
-      const aReponer = productos.filter((p) => p.estado === "REPONER");
       return {
         cantidad_productos: productos.length,
         total_unidades: productos.reduce((acc, p) => acc + p.stock, 0),
-        valor_total: productos.reduce((acc, p) => acc + p.valor, 0),
-        cantidad_a_reponer: aReponer.length,
-        codigos_a_reponer: aReponer.map((p) => p.codigo)
+        valor_total: productos.reduce((acc, p) => acc + p.valor, 0)
       };
     }
 
@@ -175,7 +162,7 @@ async function ejecutarHerramienta(name, input) {
       const actualizado = enrich({ id: doc.id, ...doc.data(), [campo]: nuevoValor });
       return {
         ok: true,
-        producto: { codigo: actualizado.codigo, stock: actualizado.stock, estado: actualizado.estado }
+        producto: { codigo: actualizado.codigo, stock: actualizado.stock }
       };
     }
 
