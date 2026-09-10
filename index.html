@@ -193,6 +193,20 @@
   /* ---------- Layout ---------- */
   main{ max-width:1400px; margin:0 auto; padding:24px; }
 
+  /* ---------- View tabs ---------- */
+  .view-tabs{ display:flex; gap:8px; margin-bottom:22px; flex-wrap:wrap; }
+  .view-tab{
+    display:inline-flex; align-items:center; gap:8px;
+    padding:11px 20px; border-radius:999px; border:1px solid var(--line);
+    background:var(--panel); color:var(--text-dim); font-weight:700; font-size:13.5px;
+    font-family:var(--font-body); cursor:pointer; transition:all .15s ease;
+  }
+  .view-tab:hover:not(.active){ color:var(--text); border-color:var(--steel-dim); }
+  .view-tab.active{
+    background:linear-gradient(135deg, var(--ice) 0%, var(--btn-grad-end) 100%);
+    color:#062430; border-color:transparent; box-shadow:0 4px 16px rgba(var(--ice-rgb),0.18);
+  }
+
   /* ---------- Summary cards ---------- */
   .summary{
     display:grid; grid-template-columns:repeat(auto-fit, minmax(190px,1fr));
@@ -310,6 +324,50 @@
   .badge.tech-inverter{ background:rgba(var(--ice-rgb),0.14); color:var(--ice); }
   .badge.tech-onoff{ background:rgba(127,168,201,0.14); color:var(--steel); }
   .badge-dot{ width:6px; height:6px; border-radius:50%; background:currentColor; }
+  .badge.pendiente{ background:var(--amber-bg); color:var(--amber); }
+  .badge.confirmado{ background:rgba(var(--ice-rgb),0.14); color:var(--ice); }
+  .badge.realizado{ background:var(--ok-bg); color:var(--ok); }
+  .badge.cancelado{ background:var(--warn-bg); color:var(--warn); }
+
+  /* ---------- Agenda ---------- */
+  .agenda-group{ margin-bottom:24px; }
+  .agenda-group-title{
+    font-family:var(--font-display); font-size:13.5px; font-weight:700; letter-spacing:0.06em;
+    text-transform:uppercase; color:var(--text-dim); margin:0 0 10px;
+    display:flex; align-items:center; gap:8px;
+  }
+  .agenda-group-title.overdue{ color:var(--warn); }
+  .agenda-group-title .count{
+    font-family:var(--font-body); font-size:11px; font-weight:700;
+    background:var(--panel-2); color:var(--text-dim); border-radius:20px; padding:2px 9px;
+  }
+  .turno-card{
+    display:flex; gap:16px; align-items:flex-start;
+    background:var(--panel); border:1px solid var(--line); border-radius:var(--radius);
+    padding:16px 18px; margin-bottom:10px;
+  }
+  .turno-card.overdue{ border-color:var(--warn); }
+  .turno-date{
+    flex-shrink:0; width:58px; text-align:center;
+    background:var(--panel-2); border-radius:9px; padding:9px 4px;
+  }
+  .turno-date .day{ font-family:var(--font-display); font-size:22px; font-weight:700; color:var(--ice); line-height:1; }
+  .turno-date .month{ font-size:10px; text-transform:uppercase; color:var(--text-dim); font-weight:700; margin-top:3px; }
+  .turno-date .hora{ font-size:11px; color:var(--text-dim); margin-top:4px; font-family:var(--font-mono); }
+  .turno-body{ flex:1; min-width:0; }
+  .turno-top{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:6px; }
+  .turno-cliente{ font-weight:700; font-size:14.5px; color:var(--text); }
+  .turno-meta{ font-size:12.5px; color:var(--text-dim); display:flex; flex-wrap:wrap; gap:4px 16px; }
+  .turno-meta span{ display:inline-flex; align-items:center; gap:5px; }
+  .turno-notas{ font-size:12.5px; color:var(--text-dim); margin-top:8px; font-style:italic; }
+  .turno-actions{ display:flex; gap:6px; flex-shrink:0; }
+
+  @media (max-width:640px){
+    .turno-card{ flex-direction:column; }
+    .turno-date{ width:auto; display:flex; align-items:center; gap:8px; padding:6px 10px; }
+    .turno-date .day, .turno-date .month, .turno-date .hora{ margin:0; }
+    .turno-actions{ width:100%; justify-content:flex-end; }
+  }
 
   .row-actions{ display:flex; gap:6px; justify-content:flex-end; }
   .icon-btn{
@@ -538,6 +596,13 @@
 
 <main>
 
+  <div class="view-tabs">
+    <button class="view-tab active" id="tabStock" type="button">📦 Stock</button>
+    <button class="view-tab" id="tabAgenda" type="button">🗓️ Agenda de instalaciones</button>
+  </div>
+
+  <div id="viewStock">
+
   <section class="summary">
     <div class="card accent-ok">
       <p class="card-label">Unidades en stock</p>
@@ -623,6 +688,53 @@
     </div>
   </div>
 
+  </div><!-- /viewStock -->
+
+  <div id="viewAgenda" style="display:none;">
+
+    <section class="summary">
+      <div class="card accent-ice">
+        <p class="card-label">Turnos programados</p>
+        <div class="card-value" id="agSumTotal">0</div>
+      </div>
+      <div class="card accent-amber">
+        <p class="card-label">Instalaciones de hoy</p>
+        <div class="card-value" id="agSumHoy">0</div>
+      </div>
+    </section>
+
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <div class="search-box">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+          <input type="text" id="agSearchInput" placeholder="Buscar por cliente o dirección…">
+        </div>
+        <select class="filter" id="agFilterEstado">
+          <option value="todos">Todos los estados</option>
+          <option value="Pendiente">Pendiente</option>
+          <option value="Confirmado">Confirmado</option>
+          <option value="Realizado">Realizado</option>
+          <option value="Cancelado">Cancelado</option>
+        </select>
+      </div>
+      <div class="toolbar-right" style="display:flex; gap:10px;">
+        <button class="btn btn-primary" id="btnNuevoTurno">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+          Nuevo turno
+        </button>
+      </div>
+    </div>
+
+    <div id="agendaGroups"></div>
+
+    <div class="empty-state" id="agendaEmptyState" style="display:none;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+      <p>Todavía no hay turnos agendados.</p>
+      <p class="hint">Hacé clic en "Nuevo turno" para agendar tu primera instalación.</p>
+    </div>
+
+  </div><!-- /viewAgenda -->
+
 </main>
 
 <footer>Sergio T Refrigeración — Control de Stock en tiempo real</footer>
@@ -699,6 +811,69 @@
     <div class="modal-footer">
       <button class="btn btn-ghost" id="btnCancelar" type="button">Cancelar</button>
       <button class="btn btn-primary" id="btnGuardar" type="submit" form="productForm">Guardar producto</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Turno de instalación -->
+<div class="overlay" id="overlayTurno">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="turnoModalTitle">Nuevo turno</h2>
+      <button class="modal-close" id="turnoModalClose">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <form id="turnoForm">
+        <div class="form-grid">
+          <div class="field span2">
+            <label>Cliente</label>
+            <input type="text" id="t_cliente" placeholder="Juan Pérez" required>
+          </div>
+          <div class="field">
+            <label>Teléfono</label>
+            <input type="tel" id="t_telefono" placeholder="351 123-4567">
+          </div>
+          <div class="field">
+            <label>Fecha</label>
+            <input type="date" id="t_fecha" required>
+          </div>
+          <div class="field span2">
+            <label>Dirección</label>
+            <input type="text" id="t_direccion" placeholder="Av. Colón 1234, Córdoba">
+          </div>
+          <div class="field">
+            <label>Hora</label>
+            <input type="time" id="t_hora">
+          </div>
+          <div class="field">
+            <label>Estado</label>
+            <select id="t_estado">
+              <option value="Pendiente">Pendiente</option>
+              <option value="Confirmado">Confirmado</option>
+              <option value="Realizado">Realizado</option>
+              <option value="Cancelado">Cancelado</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Equipo a instalar</label>
+            <input type="text" id="t_equipo" placeholder="Split 3000 Inverter">
+          </div>
+          <div class="field">
+            <label>Técnico asignado</label>
+            <input type="text" id="t_tecnico" placeholder="Sergio">
+          </div>
+          <div class="field span2">
+            <label>Notas</label>
+            <textarea id="t_notas" rows="3" placeholder="Detalles del trabajo, acceso al domicilio, etc." style="width:100%; background:var(--panel-2); border:1px solid var(--line); color:var(--text); border-radius:8px; padding:10px 12px; font-family:var(--font-body); font-size:13.5px; resize:vertical;"></textarea>
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" id="btnTurnoCancelar" type="button">Cancelar</button>
+      <button class="btn btn-primary" id="btnTurnoGuardar" type="submit" form="turnoForm">Guardar turno</button>
     </div>
   </div>
 </div>
@@ -1023,6 +1198,26 @@
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && overlay.classList.contains("open")) closeModal();
   });
+
+  // ---------- View switcher (Stock / Agenda) ----------
+  const viewStock  = document.getElementById("viewStock");
+  const viewAgenda = document.getElementById("viewAgenda");
+  const tabStock   = document.getElementById("tabStock");
+  const tabAgenda  = document.getElementById("tabAgenda");
+
+  function switchView(view){
+    const showAgenda = view === "agenda";
+    viewStock.style.display  = showAgenda ? "none" : "block";
+    viewAgenda.style.display = showAgenda ? "block" : "none";
+    tabStock.classList.toggle("active", !showAgenda);
+    tabAgenda.classList.toggle("active", showAgenda);
+    try{ localStorage.setItem("vistaActiva", view); }catch(e){}
+  }
+  tabStock.addEventListener("click", () => switchView("stock"));
+  tabAgenda.addEventListener("click", () => switchView("agenda"));
+  try{
+    if (localStorage.getItem("vistaActiva") === "agenda") switchView("agenda");
+  }catch(e){}
 </script>
 
 <!-- Modal: Carga masiva -->
@@ -1119,6 +1314,237 @@
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && overlayMasiva.classList.contains("open")) overlayMasiva.classList.remove("open");
   });
+</script>
+
+<script>
+  // ---------- Agenda de instalaciones ----------
+  const AGENDA_COLLECTION = "instalaciones";
+
+  let turnos = [];
+  let turnoEditingId = null;
+  let agSearchTerm = "";
+  let agEstadoFilter = "todos";
+
+  const overlayTurno     = document.getElementById("overlayTurno");
+  const turnoModalTitle  = document.getElementById("turnoModalTitle");
+  const turnoForm        = document.getElementById("turnoForm");
+  const agendaGroups     = document.getElementById("agendaGroups");
+  const agendaEmptyState = document.getElementById("agendaEmptyState");
+  const agSumTotal       = document.getElementById("agSumTotal");
+  const agSumHoy         = document.getElementById("agSumHoy");
+
+  function openTurnoModal(){ overlayTurno.classList.add("open"); }
+  function closeTurnoModal(){
+    overlayTurno.classList.remove("open");
+    turnoForm.reset();
+    turnoEditingId = null;
+  }
+
+  document.getElementById("btnNuevoTurno").addEventListener("click", () => {
+    turnoEditingId = null;
+    turnoModalTitle.textContent = "Nuevo turno";
+    turnoForm.reset();
+    document.getElementById("t_estado").value = "Pendiente";
+    openTurnoModal();
+  });
+  document.getElementById("turnoModalClose").addEventListener("click", closeTurnoModal);
+  document.getElementById("btnTurnoCancelar").addEventListener("click", closeTurnoModal);
+  overlayTurno.addEventListener("click", (e) => { if (e.target === overlayTurno) closeTurnoModal(); });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && overlayTurno.classList.contains("open")) closeTurnoModal();
+  });
+
+  window.openEditTurno = function(id){
+    const t = turnos.find(x => x.id === id);
+    if (!t) return;
+    turnoEditingId = id;
+    turnoModalTitle.textContent = "Editar turno";
+    document.getElementById("t_cliente").value   = t.cliente || "";
+    document.getElementById("t_telefono").value  = t.telefono || "";
+    document.getElementById("t_direccion").value = t.direccion || "";
+    document.getElementById("t_fecha").value     = t.fecha || "";
+    document.getElementById("t_hora").value      = t.hora || "";
+    document.getElementById("t_equipo").value    = t.equipo || "";
+    document.getElementById("t_tecnico").value   = t.tecnico || "";
+    document.getElementById("t_estado").value    = t.estado || "Pendiente";
+    document.getElementById("t_notas").value     = t.notas || "";
+    openTurnoModal();
+  };
+
+  window.deleteTurno = function(id){
+    const t = turnos.find(x => x.id === id);
+    if (!t) return;
+    const ok = confirm(`¿Eliminar el turno de ${t.cliente || "este cliente"}?\n\nEsta acción no se puede deshacer.`);
+    if (ok){
+      db.collection(AGENDA_COLLECTION).doc(id).delete().catch(err => {
+        alert("No se pudo eliminar el turno. Revisá la conexión e intentá de nuevo.");
+        console.error(err);
+      });
+    }
+  };
+
+  turnoForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const data = {
+      cliente:   document.getElementById("t_cliente").value.trim(),
+      telefono:  document.getElementById("t_telefono").value.trim(),
+      direccion: document.getElementById("t_direccion").value.trim(),
+      fecha:     document.getElementById("t_fecha").value,
+      hora:      document.getElementById("t_hora").value,
+      equipo:    document.getElementById("t_equipo").value.trim(),
+      tecnico:   document.getElementById("t_tecnico").value.trim(),
+      estado:    document.getElementById("t_estado").value,
+      notas:     document.getElementById("t_notas").value.trim(),
+      actualizado: firebase.firestore.FieldValue.serverTimestamp()
+    };
+    if (!data.cliente || !data.fecha) return;
+
+    const btnTurnoGuardar = document.getElementById("btnTurnoGuardar");
+    btnTurnoGuardar.disabled = true;
+    btnTurnoGuardar.textContent = "Guardando…";
+    try{
+      if (turnoEditingId){
+        await db.collection(AGENDA_COLLECTION).doc(turnoEditingId).update(data);
+      } else {
+        data.creado = firebase.firestore.FieldValue.serverTimestamp();
+        await db.collection(AGENDA_COLLECTION).add(data);
+      }
+      closeTurnoModal();
+    } catch(err){
+      console.error(err);
+      alert("No se pudo guardar el turno. Revisá la conexión e intentá de nuevo.");
+    } finally{
+      btnTurnoGuardar.disabled = false;
+      btnTurnoGuardar.textContent = "Guardar turno";
+    }
+  });
+
+  document.getElementById("agSearchInput").addEventListener("input", (e) => {
+    agSearchTerm = e.target.value.trim().toLowerCase();
+    renderAgenda();
+  });
+  document.getElementById("agFilterEstado").addEventListener("change", (e) => {
+    agEstadoFilter = e.target.value;
+    renderAgenda();
+  });
+
+  function toISODateLocal(d){
+    const tz = d.getTimezoneOffset() * 60000;
+    return new Date(d - tz).toISOString().slice(0, 10);
+  }
+  function hoyISO(){ return toISODateLocal(new Date()); }
+
+  const MESES = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+
+  function fmtFechaCorta(fechaISO){
+    if (!fechaISO) return { dia: "--", mes: "" };
+    const [y, m, d] = fechaISO.split("-").map(Number);
+    return { dia: String(d).padStart(2,"0"), mes: MESES[m-1] || "" };
+  }
+
+  function isOverdue(t, hoy){
+    return !!t.fecha && t.fecha < hoy && t.estado !== "Realizado" && t.estado !== "Cancelado";
+  }
+
+  function turnoCardHtml(t, hoy){
+    const { dia, mes } = fmtFechaCorta(t.fecha);
+    const estadoClass = (t.estado || "Pendiente").toLowerCase();
+    const overdue = isOverdue(t, hoy);
+    const metaParts = [];
+    if (t.telefono)  metaParts.push(`<span>📞 ${escapeHtml(t.telefono)}</span>`);
+    if (t.direccion) metaParts.push(`<span>📍 ${escapeHtml(t.direccion)}</span>`);
+    if (t.equipo)    metaParts.push(`<span>🔧 ${escapeHtml(t.equipo)}</span>`);
+    if (t.tecnico)   metaParts.push(`<span>👷 ${escapeHtml(t.tecnico)}</span>`);
+    return `
+      <div class="turno-card${overdue ? " overdue" : ""}">
+        <div class="turno-date">
+          <div class="day">${dia}</div>
+          <div class="month">${mes}</div>
+          ${t.hora ? `<div class="hora">${escapeHtml(t.hora)}</div>` : ""}
+        </div>
+        <div class="turno-body">
+          <div class="turno-top">
+            <span class="turno-cliente">${escapeHtml(t.cliente || "Sin nombre")}</span>
+            <span class="badge ${estadoClass}"><span class="badge-dot"></span>${escapeHtml(t.estado || "Pendiente")}</span>
+          </div>
+          ${metaParts.length ? `<div class="turno-meta">${metaParts.join("")}</div>` : ""}
+          ${t.notas ? `<div class="turno-notas">${escapeHtml(t.notas)}</div>` : ""}
+        </div>
+        <div class="turno-actions">
+          <button class="icon-btn" title="Editar" onclick="openEditTurno('${t.id}')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+          </button>
+          <button class="icon-btn danger" title="Eliminar" onclick="deleteTurno('${t.id}')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6"/></svg>
+          </button>
+        </div>
+      </div>`;
+  }
+
+  function renderAgenda(){
+    let list = turnos.filter(t => {
+      const matchesSearch = !agSearchTerm ||
+        (t.cliente   || "").toLowerCase().includes(agSearchTerm) ||
+        (t.direccion || "").toLowerCase().includes(agSearchTerm);
+      const matchesEstado = agEstadoFilter === "todos" || t.estado === agEstadoFilter;
+      return matchesSearch && matchesEstado;
+    });
+
+    agSumTotal.textContent = fmtNum(turnos.length);
+    const hoy = hoyISO();
+    agSumHoy.textContent = fmtNum(turnos.filter(t => t.fecha === hoy).length);
+
+    if (list.length === 0){
+      agendaGroups.innerHTML = "";
+      agendaEmptyState.style.display = "block";
+      return;
+    }
+    agendaEmptyState.style.display = "none";
+
+    list = [...list].sort((a, b) => {
+      const fa = a.fecha || "9999-99-99", fb = b.fecha || "9999-99-99";
+      if (fa !== fb) return fa < fb ? -1 : 1;
+      return (a.hora || "").localeCompare(b.hora || "");
+    });
+
+    const mananaDate = new Date();
+    mananaDate.setDate(mananaDate.getDate() + 1);
+    const mananaISO = toISODateLocal(mananaDate);
+
+    const grupos = { atrasados: [], hoy: [], manana: [], proximos: [] };
+    for (const t of list){
+      if (isOverdue(t, hoy)) grupos.atrasados.push(t);
+      else if (t.fecha === hoy) grupos.hoy.push(t);
+      else if (t.fecha === mananaISO) grupos.manana.push(t);
+      else grupos.proximos.push(t);
+    }
+
+    const secciones = [
+      { key: "atrasados", titulo: "Atrasados", overdue: true },
+      { key: "hoy", titulo: "Hoy" },
+      { key: "manana", titulo: "Mañana" },
+      { key: "proximos", titulo: "Próximos" }
+    ];
+
+    agendaGroups.innerHTML = secciones
+      .filter(s => grupos[s.key].length > 0)
+      .map(s => `
+        <div class="agenda-group">
+          <p class="agenda-group-title${s.overdue ? " overdue" : ""}">${s.titulo} <span class="count">${grupos[s.key].length}</span></p>
+          ${grupos[s.key].map(t => turnoCardHtml(t, hoy)).join("")}
+        </div>
+      `).join("");
+  }
+
+  db.collection(AGENDA_COLLECTION).orderBy("fecha").onSnapshot(
+    (snapshot) => {
+      turnos = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      renderAgenda();
+    },
+    (error) => {
+      console.error(error);
+    }
+  );
 </script>
 
 <!-- Asistente de stock (chat) -->
