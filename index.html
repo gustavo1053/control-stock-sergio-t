@@ -858,7 +858,9 @@
           </div>
           <div class="field">
             <label>Equipo a instalar</label>
-            <input type="text" id="t_equipo" placeholder="Split 3000 Inverter">
+            <select id="t_equipo">
+              <option value="">Seleccionar equipo…</option>
+            </select>
           </div>
           <div class="field">
             <label>Técnico asignado</label>
@@ -1340,10 +1342,26 @@
     turnoEditingId = null;
   }
 
+  function populateEquipoOptions(selected){
+    const select = document.getElementById("t_equipo");
+    const opciones = productos.map(p => {
+      const nombre = `${p.codigo} — ${p.marca || ""} ${p.modelo || ""}`.trim();
+      const stock  = computeStock(p);
+      return `<option value="${escapeHtml(nombre)}">${escapeHtml(nombre)} (Stock: ${stock})</option>`;
+    });
+    select.innerHTML = `<option value="">Seleccionar equipo…</option>` + opciones.join("");
+    const valor = selected || "";
+    if (valor && ![...select.options].some(o => o.value === valor)){
+      select.insertAdjacentHTML("beforeend", `<option value="${escapeHtml(valor)}">${escapeHtml(valor)}</option>`);
+    }
+    select.value = valor;
+  }
+
   document.getElementById("btnNuevoTurno").addEventListener("click", () => {
     turnoEditingId = null;
     turnoModalTitle.textContent = "Nuevo turno";
     turnoForm.reset();
+    populateEquipoOptions("");
     document.getElementById("t_estado").value = "Pendiente";
     openTurnoModal();
   });
@@ -1364,7 +1382,7 @@
     document.getElementById("t_direccion").value = t.direccion || "";
     document.getElementById("t_fecha").value     = t.fecha || "";
     document.getElementById("t_hora").value      = t.hora || "";
-    document.getElementById("t_equipo").value    = t.equipo || "";
+    populateEquipoOptions(t.equipo || "");
     document.getElementById("t_tecnico").value   = t.tecnico || "";
     document.getElementById("t_estado").value    = t.estado || "Pendiente";
     document.getElementById("t_notas").value     = t.notas || "";
