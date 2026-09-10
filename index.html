@@ -569,7 +569,7 @@
       <select class="filter" id="filterEstado">
         <option value="todos">Todos los estados</option>
         <option value="OK">Solo OK</option>
-        <option value="REPONER">Solo a reponer</option>
+        <option value="SIN STOCK">Solo sin stock</option>
       </select>
       <select class="filter" id="filterTecnologia">
         <option value="todos">Inverter y On Off</option>
@@ -754,7 +754,7 @@
     return entradas - salidas;
   }
   function computeEstado(p){
-    return computeStock(p) <= (Number(p.minimo) || 0) ? "REPONER" : "OK";
+    return computeStock(p) > 0 ? "OK" : "SIN STOCK";
   }
   function computeTecnologia(p){
     if (p.tecnologia) return p.tecnologia;
