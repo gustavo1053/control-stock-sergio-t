@@ -547,10 +547,6 @@
       <p class="card-label">Valor del inventario</p>
       <div class="card-value" id="sumValor">$0</div>
     </div>
-    <div class="card accent-warn">
-      <p class="card-label">A reponer</p>
-      <div class="card-value warn" id="sumReponer">0</div>
-    </div>
   </section>
 
   <section class="summary" style="margin-top:-10px;">
@@ -743,7 +739,6 @@
 
   const sumUnidades  = document.getElementById("sumUnidades");
   const sumValor      = document.getElementById("sumValor");
-  const sumReponer    = document.getElementById("sumReponer");
   const sumInverterUnidades  = document.getElementById("sumInverterUnidades");
   const sumInverterProductos = document.getElementById("sumInverterProductos");
   const sumOnOffUnidades     = document.getElementById("sumOnOffUnidades");
@@ -805,11 +800,9 @@
     // Summary (over ALL products, not filtered)
     const totalUnidades  = productos.reduce((acc,p) => acc + computeStock(p), 0);
     const totalValor     = productos.reduce((acc,p) => acc + computeValor(p), 0);
-    const totalReponer   = productos.filter(p => computeEstado(p) === "REPONER").length;
 
     sumUnidades.textContent  = fmtNum(totalUnidades);
     sumValor.textContent     = fmtMoney(totalValor);
-    sumReponer.textContent   = fmtNum(totalReponer);
 
     const invList    = productos.filter(p => computeTecnologia(p) === "Inverter");
     const onoffList  = productos.filter(p => computeTecnologia(p) === "On Off");
