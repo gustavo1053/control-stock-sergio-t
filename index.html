@@ -895,11 +895,14 @@
       </p>
       <textarea id="ticketText" rows="9" readonly style="width:100%; background:var(--panel-2); border:1px solid var(--line); color:var(--text); border-radius:8px; padding:12px; font-family:var(--font-mono); font-size:12.5px; resize:vertical;"></textarea>
       <div style="display:flex; gap:10px; margin-top:14px; flex-wrap:wrap;">
-        <a class="btn btn-primary" id="btnTicketWhatsapp" target="_blank" rel="noopener" style="text-decoration:none; background:linear-gradient(135deg,#25D366,#128C7E); box-shadow:none; color:#fff;">
-          📱 WhatsApp
+        <a class="btn btn-primary btn-social" id="btnTicketFacebook" href="#" target="_blank" rel="noopener" style="text-decoration:none; background:linear-gradient(135deg,#1877F2,#42A5F5); box-shadow:none; color:#fff;">
+          📘 Facebook
         </a>
-        <a class="btn btn-primary" id="btnTicketTelegram" target="_blank" rel="noopener" style="text-decoration:none; background:linear-gradient(135deg,#34AADF,#2694CC); box-shadow:none; color:#fff;">
-          ✈️ Telegram
+        <a class="btn btn-primary btn-social" id="btnTicketInstagram" href="#" target="_blank" rel="noopener" style="text-decoration:none; background:linear-gradient(135deg,#E1306C,#C13584); box-shadow:none; color:#fff;">
+          📷 Instagram
+        </a>
+        <a class="btn btn-primary btn-social" id="btnTicketBusinessSuite" href="#" target="_blank" rel="noopener" style="text-decoration:none; background:linear-gradient(135deg,#00B2FF,#006AFF); box-shadow:none; color:#fff;">
+          💬 Business Suite
         </a>
         <button class="btn btn-ghost" id="btnTicketCopiar" type="button">Copiar texto</button>
       </div>
@@ -911,11 +914,14 @@
       </p>
       <textarea id="clienteText" rows="9" readonly style="width:100%; background:var(--panel-2); border:1px solid var(--line); color:var(--text); border-radius:8px; padding:12px; font-family:var(--font-mono); font-size:12.5px; resize:vertical;"></textarea>
       <div style="display:flex; gap:10px; margin-top:14px; flex-wrap:wrap;">
-        <a class="btn btn-primary" id="btnClienteWhatsapp" target="_blank" rel="noopener" style="text-decoration:none; background:linear-gradient(135deg,#25D366,#128C7E); box-shadow:none; color:#fff;">
-          📱 WhatsApp
+        <a class="btn btn-primary btn-social" id="btnClienteFacebook" href="#" target="_blank" rel="noopener" style="text-decoration:none; background:linear-gradient(135deg,#1877F2,#42A5F5); box-shadow:none; color:#fff;">
+          📘 Facebook
         </a>
-        <a class="btn btn-primary" id="btnClienteTelegram" target="_blank" rel="noopener" style="text-decoration:none; background:linear-gradient(135deg,#34AADF,#2694CC); box-shadow:none; color:#fff;">
-          ✈️ Telegram
+        <a class="btn btn-primary btn-social" id="btnClienteInstagram" href="#" target="_blank" rel="noopener" style="text-decoration:none; background:linear-gradient(135deg,#E1306C,#C13584); box-shadow:none; color:#fff;">
+          📷 Instagram
+        </a>
+        <a class="btn btn-primary btn-social" id="btnClienteBusinessSuite" href="#" target="_blank" rel="noopener" style="text-decoration:none; background:linear-gradient(135deg,#00B2FF,#006AFF); box-shadow:none; color:#fff;">
+          💬 Business Suite
         </a>
         <button class="btn btn-ghost" id="btnClienteCopiar" type="button">Copiar texto</button>
       </div>
@@ -1435,16 +1441,26 @@
     openTurnoModal();
   };
 
-  // ---------- Ticket para compartir (WhatsApp / Telegram) ----------
-  const overlayTicket     = document.getElementById("overlayTicket");
-  const ticketText        = document.getElementById("ticketText");
-  const btnTicketWhatsapp = document.getElementById("btnTicketWhatsapp");
-  const btnTicketTelegram = document.getElementById("btnTicketTelegram");
-  const btnTicketCopiar   = document.getElementById("btnTicketCopiar");
-  const clienteText        = document.getElementById("clienteText");
-  const btnClienteWhatsapp = document.getElementById("btnClienteWhatsapp");
-  const btnClienteTelegram = document.getElementById("btnClienteTelegram");
-  const btnClienteCopiar   = document.getElementById("btnClienteCopiar");
+  // ---------- Ticket para compartir (Facebook / Instagram / Meta Business Suite) ----------
+  // El link de Business Suite es genérico: lleva a la bandeja de entrada
+  // unificada una vez que iniciás sesión, sin depender del usuario de la página.
+  const SOCIAL_LINKS = {
+    facebook:      "https://www.facebook.com/share/1K4f7gqywL/?mibextid=wwXIfr",
+    instagram:     "https://www.instagram.com/sergiotrefrigeracion",
+    businessSuite: "https://business.facebook.com/latest/inbox/all"
+  };
+
+  const overlayTicket          = document.getElementById("overlayTicket");
+  const ticketText             = document.getElementById("ticketText");
+  const btnTicketFacebook      = document.getElementById("btnTicketFacebook");
+  const btnTicketInstagram     = document.getElementById("btnTicketInstagram");
+  const btnTicketBusinessSuite = document.getElementById("btnTicketBusinessSuite");
+  const btnTicketCopiar        = document.getElementById("btnTicketCopiar");
+  const clienteText             = document.getElementById("clienteText");
+  const btnClienteFacebook      = document.getElementById("btnClienteFacebook");
+  const btnClienteInstagram     = document.getElementById("btnClienteInstagram");
+  const btnClienteBusinessSuite = document.getElementById("btnClienteBusinessSuite");
+  const btnClienteCopiar        = document.getElementById("btnClienteCopiar");
 
   function fmtFechaLarga(fechaISO){
     if (!fechaISO) return "-";
@@ -1483,11 +1499,29 @@
     return lineas.join("\n");
   }
 
-  function setShareLinks(waBtn, tgBtn, texto){
-    const encoded = encodeURIComponent(texto);
-    waBtn.href = `https://api.whatsapp.com/send?text=${encoded}`;
-    tgBtn.href = `https://t.me/share/url?url=&text=${encoded}`;
+  // Facebook e Instagram no permiten prellenar el mensaje vía URL
+  // (a diferencia de WhatsApp/Telegram), así que copiamos el texto al portapapeles
+  // y abrimos la página/chat para pegarlo manualmente.
+  function setSocialLinks(fbBtn, igBtn, bsBtn, texto){
+    fbBtn.href = SOCIAL_LINKS.facebook;
+    igBtn.href = SOCIAL_LINKS.instagram;
+    bsBtn.href = SOCIAL_LINKS.businessSuite;
+    [fbBtn, igBtn, bsBtn].forEach(btn => { btn.dataset.copyText = texto; });
   }
+
+  document.querySelectorAll(".btn-social").forEach(btn => {
+    btn.addEventListener("click", async (e) => {
+      e.preventDefault();
+      const texto = btn.dataset.copyText || "";
+      try{
+        await navigator.clipboard.writeText(texto);
+      }catch(err){ /* si falla el portapapeles, igual abrimos el link */ }
+      const original = btn.innerHTML;
+      btn.innerHTML = "¡Copiado! Abriendo…";
+      setTimeout(() => { btn.innerHTML = original; }, 1500);
+      window.open(btn.href, "_blank", "noopener");
+    });
+  });
 
   async function copiarAlPortapapeles(textarea, boton){
     try{
@@ -1504,11 +1538,11 @@
   function showTicket(t){
     const texto = buildTicketText(t);
     ticketText.value = texto;
-    setShareLinks(btnTicketWhatsapp, btnTicketTelegram, texto);
+    setSocialLinks(btnTicketFacebook, btnTicketInstagram, btnTicketBusinessSuite, texto);
 
     const mensajeCliente = buildClienteMensaje(t);
     clienteText.value = mensajeCliente;
-    setShareLinks(btnClienteWhatsapp, btnClienteTelegram, mensajeCliente);
+    setSocialLinks(btnClienteFacebook, btnClienteInstagram, btnClienteBusinessSuite, mensajeCliente);
 
     overlayTicket.classList.add("open");
   }
