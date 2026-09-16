@@ -901,8 +901,8 @@
         <a class="btn btn-primary btn-social" id="btnTicketInstagram" href="#" target="_blank" rel="noopener" style="text-decoration:none; background:linear-gradient(135deg,#E1306C,#C13584); box-shadow:none; color:#fff;">
           📷 Instagram
         </a>
-        <a class="btn btn-primary btn-social" id="btnTicketMessenger" href="#" target="_blank" rel="noopener" style="text-decoration:none; background:linear-gradient(135deg,#00B2FF,#006AFF); box-shadow:none; color:#fff;">
-          💬 Messenger
+        <a class="btn btn-primary btn-social" id="btnTicketBusinessSuite" href="#" target="_blank" rel="noopener" style="text-decoration:none; background:linear-gradient(135deg,#00B2FF,#006AFF); box-shadow:none; color:#fff;">
+          💬 Business Suite
         </a>
         <button class="btn btn-ghost" id="btnTicketCopiar" type="button">Copiar texto</button>
       </div>
@@ -920,8 +920,8 @@
         <a class="btn btn-primary btn-social" id="btnClienteInstagram" href="#" target="_blank" rel="noopener" style="text-decoration:none; background:linear-gradient(135deg,#E1306C,#C13584); box-shadow:none; color:#fff;">
           📷 Instagram
         </a>
-        <a class="btn btn-primary btn-social" id="btnClienteMessenger" href="#" target="_blank" rel="noopener" style="text-decoration:none; background:linear-gradient(135deg,#00B2FF,#006AFF); box-shadow:none; color:#fff;">
-          💬 Messenger
+        <a class="btn btn-primary btn-social" id="btnClienteBusinessSuite" href="#" target="_blank" rel="noopener" style="text-decoration:none; background:linear-gradient(135deg,#00B2FF,#006AFF); box-shadow:none; color:#fff;">
+          💬 Business Suite
         </a>
         <button class="btn btn-ghost" id="btnClienteCopiar" type="button">Copiar texto</button>
       </div>
@@ -1441,25 +1441,26 @@
     openTurnoModal();
   };
 
-  // ---------- Ticket para compartir (Facebook / Instagram / Messenger) ----------
-  // Messenger queda como placeholder hasta confirmar el usuario/página real.
+  // ---------- Ticket para compartir (Facebook / Instagram / Meta Business Suite) ----------
+  // El link de Business Suite es genérico: lleva a la bandeja de entrada
+  // unificada una vez que iniciás sesión, sin depender del usuario de la página.
   const SOCIAL_LINKS = {
-    facebook:  "https://www.facebook.com/share/1K4f7gqywL/?mibextid=wwXIfr",
-    instagram: "https://www.instagram.com/sergiotrefrigeracion",
-    messenger: "https://m.me/sergiotrefrigeracion"
+    facebook:      "https://www.facebook.com/share/1K4f7gqywL/?mibextid=wwXIfr",
+    instagram:     "https://www.instagram.com/sergiotrefrigeracion",
+    businessSuite: "https://business.facebook.com/latest/inbox/all"
   };
 
-  const overlayTicket      = document.getElementById("overlayTicket");
-  const ticketText         = document.getElementById("ticketText");
-  const btnTicketFacebook  = document.getElementById("btnTicketFacebook");
-  const btnTicketInstagram = document.getElementById("btnTicketInstagram");
-  const btnTicketMessenger = document.getElementById("btnTicketMessenger");
-  const btnTicketCopiar    = document.getElementById("btnTicketCopiar");
-  const clienteText         = document.getElementById("clienteText");
-  const btnClienteFacebook  = document.getElementById("btnClienteFacebook");
-  const btnClienteInstagram = document.getElementById("btnClienteInstagram");
-  const btnClienteMessenger = document.getElementById("btnClienteMessenger");
-  const btnClienteCopiar    = document.getElementById("btnClienteCopiar");
+  const overlayTicket          = document.getElementById("overlayTicket");
+  const ticketText             = document.getElementById("ticketText");
+  const btnTicketFacebook      = document.getElementById("btnTicketFacebook");
+  const btnTicketInstagram     = document.getElementById("btnTicketInstagram");
+  const btnTicketBusinessSuite = document.getElementById("btnTicketBusinessSuite");
+  const btnTicketCopiar        = document.getElementById("btnTicketCopiar");
+  const clienteText             = document.getElementById("clienteText");
+  const btnClienteFacebook      = document.getElementById("btnClienteFacebook");
+  const btnClienteInstagram     = document.getElementById("btnClienteInstagram");
+  const btnClienteBusinessSuite = document.getElementById("btnClienteBusinessSuite");
+  const btnClienteCopiar        = document.getElementById("btnClienteCopiar");
 
   function fmtFechaLarga(fechaISO){
     if (!fechaISO) return "-";
@@ -1498,14 +1499,14 @@
     return lineas.join("\n");
   }
 
-  // Facebook, Instagram y Messenger no permiten prellenar el mensaje vía URL
+  // Facebook e Instagram no permiten prellenar el mensaje vía URL
   // (a diferencia de WhatsApp/Telegram), así que copiamos el texto al portapapeles
   // y abrimos la página/chat para pegarlo manualmente.
-  function setSocialLinks(fbBtn, igBtn, msBtn, texto){
+  function setSocialLinks(fbBtn, igBtn, bsBtn, texto){
     fbBtn.href = SOCIAL_LINKS.facebook;
     igBtn.href = SOCIAL_LINKS.instagram;
-    msBtn.href = SOCIAL_LINKS.messenger;
-    [fbBtn, igBtn, msBtn].forEach(btn => { btn.dataset.copyText = texto; });
+    bsBtn.href = SOCIAL_LINKS.businessSuite;
+    [fbBtn, igBtn, bsBtn].forEach(btn => { btn.dataset.copyText = texto; });
   }
 
   document.querySelectorAll(".btn-social").forEach(btn => {
@@ -1537,11 +1538,11 @@
   function showTicket(t){
     const texto = buildTicketText(t);
     ticketText.value = texto;
-    setSocialLinks(btnTicketFacebook, btnTicketInstagram, btnTicketMessenger, texto);
+    setSocialLinks(btnTicketFacebook, btnTicketInstagram, btnTicketBusinessSuite, texto);
 
     const mensajeCliente = buildClienteMensaje(t);
     clienteText.value = mensajeCliente;
-    setSocialLinks(btnClienteFacebook, btnClienteInstagram, btnClienteMessenger, mensajeCliente);
+    setSocialLinks(btnClienteFacebook, btnClienteInstagram, btnClienteBusinessSuite, mensajeCliente);
 
     overlayTicket.classList.add("open");
   }
