@@ -1763,6 +1763,8 @@
     const metaParts = [];
     if (t.telefono)  metaParts.push(`<span>📞 ${escapeHtml(t.telefono)}</span>`);
     if (t.direccion) metaParts.push(`<span>📍 ${escapeHtml(t.direccion)}</span>`);
+    if (t.instagram) metaParts.push(`<span>📷 ${escapeHtml(t.instagram)}</span>`);
+    if (t.facebook)  metaParts.push(`<span>📘 ${escapeHtml(t.facebook)}</span>`);
     if (t.equipo)    metaParts.push(`<span>🔧 ${escapeHtml(t.equipo)}</span>`);
     if (t.tecnico)   metaParts.push(`<span>👷 ${escapeHtml(t.tecnico)}</span>`);
     return `
