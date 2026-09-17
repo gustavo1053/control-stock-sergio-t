@@ -1489,7 +1489,7 @@
       `Cliente: ${t.cliente || "-"}`
     ];
     if (t.telefono)  lineas.push(`Teléfono: ${t.telefono}`);
-    if (t.direccion) lineas.push(`Dirección: ${t.direccion}`);
+    lineas.push(`Dirección: ${t.direccion || "-"}`);
     if (t.instagram) lineas.push(`Instagram: ${t.instagram}`);
     if (t.facebook)  lineas.push(`Facebook: ${t.facebook}`);
     lineas.push(`Fecha: ${fmtFechaLarga(t.fecha)}${t.hora ? " - " + t.hora + " hs" : ""}`);
