@@ -1635,6 +1635,40 @@
   btnTicketCopiar.addEventListener("click", () => copiarAlPortapapeles(ticketText, btnTicketCopiar));
   btnClienteCopiar.addEventListener("click", () => copiarAlPortapapeles(clienteText, btnClienteCopiar));
 
+  // ---------- Descuento/devolución de stock según el estado del turno ----------
+  function findProductoPorEquipo(equipoStr){
+    if (!equipoStr) return null;
+    return productos.find(p => `${p.codigo} — ${p.marca || ""} ${p.modelo || ""}`.trim() === equipoStr) || null;
+  }
+
+  async function moverStockEquipo(equipoStr, deltaSalidas){
+    const producto = findProductoPorEquipo(equipoStr);
+    if (!producto){
+      console.warn(`No se encontró en el stock el equipo "${equipoStr}" para ajustar sus unidades.`);
+      return;
+    }
+    const salidasActuales = Number(producto.salidas) || 0;
+    const nuevasSalidas = Math.max(0, salidasActuales + deltaSalidas);
+    await db.collection(COLLECTION).doc(producto.id).update({
+      salidas: nuevasSalidas,
+      actualizado: firebase.firestore.FieldValue.serverTimestamp()
+    });
+  }
+
+  // Al pasar un turno a "Realizado" se descuenta 1 unidad del equipo seleccionado.
+  // Al salir de "Realizado" (por ejemplo a "Cancelado") esa unidad vuelve al stock.
+  async function ajustarStockPorEstadoTurno(estadoAnterior, equipoAnterior, estadoNuevo, equipoNuevo){
+    const pasaARealizado    = estadoNuevo === "Realizado" && estadoAnterior !== "Realizado";
+    const saleDeRealizado   = estadoAnterior === "Realizado" && estadoNuevo !== "Realizado";
+
+    if (pasaARealizado && equipoNuevo){
+      await moverStockEquipo(equipoNuevo, +1);
+    }
+    if (saleDeRealizado && equipoAnterior){
+      await moverStockEquipo(equipoAnterior, -1);
+    }
+  }
+
   window.deleteTurno = function(id){
     const t = turnos.find(x => x.id === id);
     if (!t) return;
@@ -1649,6 +1683,9 @@
 
   turnoForm.addEventListener("submit", async (e) => {
     e.preventDefault();
+    const turnoAnterior  = turnoEditingId ? turnos.find(x => x.id === turnoEditingId) : null;
+    const estadoAnterior = turnoAnterior ? (turnoAnterior.estado || "Pendiente") : null;
+    const equipoAnterior = turnoAnterior ? (turnoAnterior.equipo || "") : "";
     const data = {
       cliente:   document.getElementById("t_cliente").value.trim(),
       telefono:  document.getElementById("t_telefono").value.trim(),
@@ -1674,6 +1711,12 @@
       } else {
         data.creado = firebase.firestore.FieldValue.serverTimestamp();
         await db.collection(AGENDA_COLLECTION).add(data);
+      }
+      try{
+        await ajustarStockPorEstadoTurno(estadoAnterior, equipoAnterior, data.estado, data.equipo);
+      } catch(stockErr){
+        console.error(stockErr);
+        alert("El turno se guardó, pero no se pudo actualizar el stock del equipo. Revisalo manualmente.");
       }
       closeTurnoModal();
       showTicket(data);
