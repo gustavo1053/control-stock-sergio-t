@@ -1301,6 +1301,10 @@
         <span style="font-family:var(--font-mono); color:var(--steel);">código;marca;modelo;tipo;tecnología;btu;minimo;precio;entradas;salidas</span><br>
         Tecnología: escribí <strong>Inverter</strong> u <strong>On Off</strong>. Si no tenés precio todavía, dejá un 0 — después lo editás producto por producto.
       </p>
+      <label style="display:flex; align-items:center; gap:8px; font-size:12.5px; color:var(--warn); margin-bottom:12px; cursor:pointer;">
+        <input type="checkbox" id="masivaReemplazar">
+        Reemplazar todo el stock actual (elimina todos los productos existentes antes de cargar esta lista)
+      </label>
       <textarea id="masivaText" rows="12" style="width:100%; background:var(--panel-2); border:1px solid var(--line); color:var(--text); border-radius:8px; padding:12px; font-family:var(--font-mono); font-size:12.5px; resize:vertical;" placeholder="INV3000-MIDEA;MIDEA;Inverter 3000F;Split Inverter;Inverter;3000;2;0;3;0"></textarea>
       <div id="masivaResultado" style="margin-top:12px; font-size:12.5px; display:none;"></div>
     </div>
@@ -1319,6 +1323,7 @@
 
   document.getElementById("btnMasiva").addEventListener("click", () => {
     masivaResultado.style.display = "none";
+    document.getElementById("masivaReemplazar").checked = false;
     overlayMasiva.classList.add("open");
   });
   document.getElementById("modalMasivaClose").addEventListener("click", () => overlayMasiva.classList.remove("open"));
@@ -1329,10 +1334,40 @@
     const lines = masivaText.value.split("\n").map(l => l.trim()).filter(l => l.length > 0);
     if (lines.length === 0) return;
 
+    const reemplazar = document.getElementById("masivaReemplazar").checked;
+    if (reemplazar){
+      const confirmar = confirm(
+        `Esto va a ELIMINAR los ${productos.length} producto(s) del stock actual y cargar la lista nueva.\n\nEsta acción no se puede deshacer. ¿Confirmás?`
+      );
+      if (!confirmar) return;
+    }
+
     btnMasivaCargar.disabled = true;
+
+    if (reemplazar){
+      btnMasivaCargar.textContent = "Eliminando stock actual…";
+      try{
+        const snapshot = await db.collection(COLLECTION).get();
+        const docs = snapshot.docs;
+        for (let i = 0; i < docs.length; i += 500){
+          const batch = db.batch();
+          docs.slice(i, i + 500).forEach(doc => batch.delete(doc.ref));
+          await batch.commit();
+        }
+      } catch(err){
+        console.error(err);
+        masivaResultado.style.display = "block";
+        masivaResultado.innerHTML = `<div style="color:var(--warn);">No se pudo eliminar el stock actual. No se cargó nada nuevo. Revisá la conexión e intentá de nuevo.</div>`;
+        btnMasivaCargar.disabled = false;
+        btnMasivaCargar.textContent = "Cargar productos";
+        return;
+      }
+    }
+
     btnMasivaCargar.textContent = "Cargando…";
 
     let ok = 0, errores = [];
+    const codigosNuevos = new Set();
     for (const line of lines){
       const parts = line.split(";").map(p => p.trim());
       if (parts.length !== 10){
@@ -1341,12 +1376,14 @@
       }
       const [codigo, marca, modelo, tipo, tecnologia, btu, minimo, precio, entradas, salidas] = parts;
       if (!codigo){ errores.push(`Línea sin código: "${line}"`); continue; }
-      const dupe = productos.find(p => p.codigo === codigo.toUpperCase());
+      const codigoNorm = codigo.toUpperCase();
+      const dupe = (!reemplazar && productos.find(p => p.codigo === codigoNorm)) || codigosNuevos.has(codigoNorm);
       if (dupe){ errores.push(`Código duplicado, se omitió: ${codigo}`); continue; }
+      codigosNuevos.add(codigoNorm);
 
       try{
         await db.collection(COLLECTION).add({
-          codigo: codigo.toUpperCase(),
+          codigo: codigoNorm,
           marca, modelo, tipo,
           tecnologia: (tecnologia || "").toLowerCase().includes("on") ? "On Off" : "Inverter",
           btu: Number(btu) || 0,
@@ -1373,6 +1410,7 @@
     btnMasivaCargar.textContent = "Cargar productos";
     if (errores.length === 0){
       masivaText.value = "";
+      document.getElementById("masivaReemplazar").checked = false;
       setTimeout(() => { overlayMasiva.classList.remove("open"); }, 1200);
     }
   });
