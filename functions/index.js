@@ -104,13 +104,15 @@ async function ejecutarHerramienta(name, input) {
       let productos = snapshot.docs.map((d) => enrich({ id: d.id, ...d.data() }));
 
       if (input.texto) {
-        const t = String(input.texto).toLowerCase();
-        productos = productos.filter(
-          (p) =>
-            (p.codigo || "").toLowerCase().includes(t) ||
-            (p.marca || "").toLowerCase().includes(t) ||
-            (p.modelo || "").toLowerCase().includes(t)
-        );
+        // Coincidencia por palabras, no por frase exacta: "bgh 3000" debe
+        // encontrar "ONOFF3000-BGH" aunque en el código la marca vaya
+        // después del número (antes se buscaba la frase completa y en ese
+        // orden nunca aparecía, así que devolvía 0 resultados).
+        const palabras = String(input.texto).toLowerCase().split(/\s+/).filter(Boolean);
+        productos = productos.filter((p) => {
+          const texto = `${p.codigo || ""} ${p.marca || ""} ${p.modelo || ""}`.toLowerCase();
+          return palabras.every((palabra) => texto.includes(palabra));
+        });
       }
       if (input.tecnologia) productos = productos.filter((p) => p.tecnologia === input.tecnologia);
 
