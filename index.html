@@ -546,6 +546,49 @@
     border:none; border-radius:8px; padding:0 14px; background:var(--ice); color:#fff; cursor:pointer; font-weight:600;
   }
   .chat-input-row button:disabled{ opacity:0.5; cursor:default; }
+
+  /* ---------- Botón F.A.Q.S. ---------- */
+  #faqToggle{
+    position:fixed; left:22px; bottom:22px; z-index:60;
+    display:flex; align-items:center; gap:8px;
+    padding:13px 18px; border-radius:999px; border:1px solid var(--line);
+    background:var(--panel); color:var(--text); font-family:var(--font-display);
+    font-weight:700; font-size:13px; letter-spacing:0.05em; cursor:pointer;
+    box-shadow:0 6px 18px rgba(60,45,20,0.18);
+    transition:all .15s ease;
+  }
+  #faqToggle:hover{ border-color:var(--ice-dim); color:var(--ice); box-shadow:0 8px 22px rgba(var(--ice-rgb),0.22); transform:translateY(-1px); }
+  #faqToggle svg{ width:18px; height:18px; flex-shrink:0; }
+  @media (max-width:640px){
+    #faqToggle span{ display:none; }
+    #faqToggle{ padding:13px; }
+  }
+
+  .faq-item{
+    border:1px solid var(--line); border-radius:10px; margin-bottom:10px;
+    overflow:hidden; background:var(--panel);
+  }
+  .faq-item + .faq-item{ margin-top:0; }
+  .faq-item summary{
+    cursor:pointer; list-style:none; padding:14px 16px;
+    font-family:var(--font-display); font-weight:700; font-size:14.5px; color:var(--text);
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+  }
+  .faq-item summary::-webkit-details-marker{ display:none; }
+  .faq-item summary::after{
+    content:'+'; color:var(--ice); font-size:18px; font-weight:700; flex-shrink:0;
+  }
+  .faq-item[open] summary::after{ content:'−'; }
+  .faq-item[open] summary{ border-bottom:1px solid var(--line); }
+  .faq-item .faq-body{ padding:14px 16px 16px; color:var(--text-dim); font-size:13px; line-height:1.65; }
+  .faq-item .faq-body ul{ margin:0; padding-left:18px; }
+  .faq-item .faq-body li{ margin-bottom:7px; }
+  .faq-item .faq-body li:last-child{ margin-bottom:0; }
+  .faq-item .faq-body strong{ color:var(--text); }
+  .faq-item .faq-body code{
+    background:var(--panel-2); padding:1px 6px; border-radius:5px;
+    font-family:var(--font-mono); font-size:11.5px; color:var(--steel);
+  }
 </style>
 </head>
 <body>
@@ -1895,6 +1938,119 @@
       console.error(error);
     }
   );
+</script>
+
+<!-- F.A.Q.S. -->
+<button id="faqToggle" title="Preguntas frecuentes" aria-label="Abrir preguntas frecuentes">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a2.9 2.9 0 0 1 5.7 1c0 1.9-2.4 2.2-2.7 3.7"/><path d="M12 17h.01"/></svg>
+  <span>F.A.Q.S.</span>
+</button>
+
+<div class="overlay" id="overlayFaq">
+  <div class="modal" style="max-width:640px;">
+    <div class="modal-header">
+      <h2>Preguntas frecuentes</h2>
+      <button class="modal-close" id="faqModalClose">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <details class="faq-item" open>
+        <summary>Qué es la app y cómo entrar</summary>
+        <div class="faq-body">
+          <p style="margin:0 0 8px;">Es la app de control de stock y turnos de Sergio T Refrigeración. Funciona desde el navegador, en el celular o la compu, y guarda todo en la nube: lo que carga un operador lo ven los demás al instante.</p>
+          <ul>
+            <li>Entrá con el link de siempre y guardalo como acceso directo en el celular.</li>
+            <li>Arriba hay dos pestañas: <strong>Stock</strong> y <strong>Agenda</strong>.</li>
+          </ul>
+        </div>
+      </details>
+      <details class="faq-item">
+        <summary>Vista Stock: consultar, agregar y editar productos</summary>
+        <div class="faq-body">
+          <ul>
+            <li>La tabla muestra código, marca, modelo, stock disponible (entradas − salidas) y estado (<strong>OK</strong> o <strong>SIN STOCK</strong>).</li>
+            <li>Usá el buscador y los filtros para encontrar un producto rápido.</li>
+            <li><strong>Nuevo producto</strong>: carga un equipo a mano con todos sus datos.</li>
+            <li>Click en el lápiz de un producto para editar entradas, salidas, precio u otro dato.</li>
+          </ul>
+        </div>
+      </details>
+      <details class="faq-item">
+        <summary>Carga masiva y reemplazo total del stock</summary>
+        <div class="faq-body">
+          <ul>
+            <li>Botón <strong>Carga masiva de stock</strong>: pegás varias líneas de una vez, una por producto, con el formato <code>código;marca;modelo;tipo;tecnología;btu;minimo;precio;entradas;salidas</code>.</li>
+            <li>Tildando <strong>"Reemplazar todo el stock actual"</strong> se borra todo el stock cargado y se reemplaza por la lista pegada.</li>
+            <li>Es una acción irreversible: usarla solo para actualizaciones completas del inventario, nunca para cargar unos pocos productos.</li>
+          </ul>
+        </div>
+      </details>
+      <details class="faq-item">
+        <summary>Vista Agenda: crear y editar turnos</summary>
+        <div class="faq-body">
+          <ul>
+            <li><strong>Nuevo turno</strong>: cliente, teléfono, dirección, Instagram/Facebook del cliente, fecha, hora, equipo a instalar, técnico asignado y notas.</li>
+            <li>Cada turno aparece como una tarjeta agrupada por fecha (Hoy, próximos días, etc.), con teléfono, dirección, redes, equipo y técnico a la vista.</li>
+            <li>Lápiz = editar el turno. Tacho = eliminarlo (pide confirmación antes de borrar).</li>
+          </ul>
+        </div>
+      </details>
+      <details class="faq-item">
+        <summary>Estados del turno y su efecto en el stock</summary>
+        <div class="faq-body">
+          <ul>
+            <li>Estados posibles: <strong>Pendiente</strong>, <strong>Confirmado</strong>, <strong>Realizado</strong>, <strong>Cancelado</strong>.</li>
+            <li>Al pasar un turno a <strong>Realizado</strong>, se descuenta automáticamente 1 unidad del equipo elegido en el desplegable "Equipo a instalar".</li>
+            <li>Si el turno deja de estar Realizado (por ejemplo, se pasa a Cancelado), esa unidad vuelve sola al stock.</li>
+            <li>Importante: elegir siempre el equipo desde el desplegable (no escribirlo a mano) para que el descuento funcione bien.</li>
+          </ul>
+        </div>
+      </details>
+      <details class="faq-item">
+        <summary>Resumen interno y mensaje al cliente</summary>
+        <div class="faq-body">
+          <ul>
+            <li>Al guardar un turno se abre un ticket con dos textos: un <strong>resumen interno</strong> (para uso propio, con todos los datos) y un <strong>mensaje para el cliente</strong> (confirmación amigable).</li>
+            <li>Botones para enviarlo por Facebook, Instagram o Business Suite, o <strong>Copiar texto</strong> para pegarlo donde haga falta.</li>
+          </ul>
+        </div>
+      </details>
+      <details class="faq-item">
+        <summary>Asistente de stock (chat)</summary>
+        <div class="faq-body">
+          <ul>
+            <li>Icono de chat abajo a la derecha de la pantalla.</li>
+            <li>Se le puede preguntar por el stock de un producto, pedir un resumen general, o cargar entradas/salidas escribiendo en lenguaje natural, por ejemplo: "cargá 3 salidas del INV3000-MIDEA".</li>
+          </ul>
+        </div>
+      </details>
+      <details class="faq-item">
+        <summary>Buenas prácticas</summary>
+        <div class="faq-body">
+          <ul>
+            <li>Elegir siempre el equipo del desplegable al crear o editar un turno, para que el descuento de stock funcione.</li>
+            <li>Revisar el stock después de cada instalación o cancelación.</li>
+            <li>Usar "Reemplazar todo el stock" con cuidado: no se puede deshacer.</li>
+            <li>Ante cualquier duda o error en los datos, avisar al encargado antes de forzar cambios.</li>
+          </ul>
+        </div>
+      </details>
+    </div>
+  </div>
+</div>
+
+<script>
+  const faqToggle      = document.getElementById("faqToggle");
+  const overlayFaq      = document.getElementById("overlayFaq");
+  const faqModalClose   = document.getElementById("faqModalClose");
+
+  faqToggle.addEventListener("click", () => overlayFaq.classList.add("open"));
+  faqModalClose.addEventListener("click", () => overlayFaq.classList.remove("open"));
+  overlayFaq.addEventListener("click", (e) => { if (e.target === overlayFaq) overlayFaq.classList.remove("open"); });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && overlayFaq.classList.contains("open")) overlayFaq.classList.remove("open");
+  });
 </script>
 
 <!-- Asistente de stock (chat) -->
