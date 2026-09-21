@@ -15,6 +15,7 @@
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 
 <style>
   :root{
@@ -997,9 +998,17 @@
     messagingSenderId: "736946062335",
     appId: "1:736946062335:web:e3b6d59f226a7e82689dca"
   };
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.firestore();
-  const COLLECTION = "stock_ac";
+ firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const auth = firebase.auth();
+const COLLECTION = "stock_ac";
+
+// Login anónimo: necesario para que Firestore permita leer/escribir
+// con las nuevas reglas de seguridad (antes eran públicas sin login).
+firebase.auth().signInAnonymously().catch((err) => {
+  console.error("Error de autenticación:", err);
+  statusText.textContent = "Error de autenticación";
+});
 
   // ---------- State ----------
   let productos = [];       // live data from Firestore
@@ -1046,22 +1055,38 @@
     return computeStock(p) * (Number(p.precio) || 0);
   }
 
-  // ---------- Realtime listener ----------
-  db.collection(COLLECTION).orderBy("codigo").onSnapshot(
-    (snapshot) => {
-      productos = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      statusDot.classList.remove("off");
-      statusDot.classList.add("pulse");
-      statusText.textContent = "Sincronizado en tiempo real";
-      render();
-    },
-    (error) => {
-      console.error(error);
-      statusDot.classList.remove("pulse");
-      statusDot.classList.add("off");
-      statusText.textContent = "Sin conexión — reintentando…";
-    }
-  );
+   // ---------- Realtime listener ----------
+  // Esperamos a que termine el login anónimo antes de escuchar Firestore.
+  firebase.auth().onAuthStateChanged((user) => {
+    if (!user) return;
+
+    db.collection(COLLECTION).orderBy("codigo").onSnapshot(
+      (snapshot) => {
+        productos = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        statusDot.classList.remove("off");
+        statusDot.classList.add("pulse");
+        statusText.textContent = "Sincronizado en tiempo real";
+        render();
+      },
+      (error) => {
+        console.error(error);
+        statusDot.classList.remove("pulse");
+        statusDot.classList.add("off");
+        statusText.textContent = "Sin conexión — reintentando…";
+      }
+    );
+
+    // Turnos de instalación: también esperan el login.
+    db.collection(AGENDA_COLLECTION).orderBy("fecha").onSnapshot(
+      (snapshot) => {
+        turnos = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        renderAgenda();
+      },
+      (error) => {
+        console.error(error);
+}
+    );
+  });
 
   // ---------- Render ----------
   function render(){
@@ -1928,16 +1953,6 @@
         </div>
       `).join("");
   }
-
-  db.collection(AGENDA_COLLECTION).orderBy("fecha").onSnapshot(
-    (snapshot) => {
-      turnos = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      renderAgenda();
-    },
-    (error) => {
-      console.error(error);
-    }
-  );
 </script>
 
 <!-- F.A.Q.S. -->
