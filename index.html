@@ -2093,7 +2093,10 @@ firebase.auth().signInAnonymously().catch((err) => {
 
 <script>
   // URL de la Cloud Function "asistenteStock" (Firebase Functions v2 / Cloud Run).
-  const ASISTENTE_URL = "https://us-central1-sergio-t-refrigeracion.cloudfunctions.net/asistenteStock";
+  // Usamos la URL nativa de Cloud Run (la que muestra la consola de Firebase como
+  // desplegada): el alias "us-central1-<proyecto>.cloudfunctions.net" devolvía 503
+  // en el preflight y el navegador lo reportaba como error de CORS.
+  const ASISTENTE_URL = "https://asistentestock-fbpxs26baq-uc.a.run.app";
 
   const chatToggle   = document.getElementById("chatToggle");
   const chatPanel    = document.getElementById("chatPanel");
